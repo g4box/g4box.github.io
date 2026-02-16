@@ -1,10 +1,590 @@
-<!DOCTYPE html>
-<html>
+<!doctype html>
+<html lang="it">
 <head>
-    <title>G4Brix</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>G4Brix • Particelle</title>
+  <style>
+    :root{
+      --bg1:#a9d7ff;
+      --bg2:#d9f1ff;
+      --panel:rgba(255,255,255,.78);
+      --text:#0b2a3a;
+      --muted:#2a5d76;
+      --border:rgba(0,0,0,.08);
+      --shadow: 0 10px 30px rgba(0,0,0,.12);
+      --radius: 14px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --ui: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    }
+    html,body{height:100%; margin:0; font-family:var(--ui); color:var(--text); overflow:hidden;}
+    body{
+      background: radial-gradient(1200px 600px at 20% 10%, var(--bg2), transparent 60%),
+                  linear-gradient(160deg, var(--bg1), var(--bg2));
+    }
+    canvas{position:fixed; inset:0; width:100%; height:100%; display:block;}
+    .panel{
+      position:fixed;
+      top:14px; left:14px;
+      width:min(360px, calc(100% - 28px));
+      background:var(--panel);
+      backdrop-filter: blur(6px);
+      border:1px solid var(--border);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      padding:12px 12px 10px;
+      user-select:none;
+    }
+    .row{display:flex; align-items:center; justify-content:space-between; gap:10px; margin:7px 0;}
+    .row label{font-size:13px; color:var(--muted); flex:1;}
+    .row input[type="range"]{flex:1.2}
+    .row input[type="number"]{width:92px}
+    .row input[type="color"]{width:42px; height:28px; padding:0; border:none; background:transparent;}
+    .row .val{font-family:var(--mono); font-size:12px; width:56px; text-align:right; color:var(--text);}
+    .title{
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+      margin-bottom:6px;
+    }
+    .title h1{font-size:14px; margin:0; letter-spacing:.2px;}
+    .badge{font-family:var(--mono); font-size:11px; padding:2px 8px; border:1px solid var(--border); border-radius:999px;}
+    .btns{display:flex; gap:8px; margin-top:8px; flex-wrap:wrap;}
+    button{
+      border:1px solid var(--border);
+      background:white;
+      border-radius:10px;
+      padding:7px 10px;
+      font-size:13px;
+      cursor:pointer;
+      box-shadow: 0 3px 10px rgba(0,0,0,.06);
+    }
+    button:active{transform: translateY(1px);}
+    .small{font-size:12px; color:var(--muted); margin-top:6px; line-height:1.25;}
+    .kbd{font-family:var(--mono); font-size:11px; padding:1px 6px; border:1px solid var(--border); border-radius:6px; background:rgba(255,255,255,.7);}
+    .footer{
+      display:flex; align-items:center; justify-content:space-between; gap:8px;
+      margin-top:8px; padding-top:8px; border-top:1px solid var(--border);
+      font-size:12px; color:var(--muted);
+    }
+    a{color:#0b4d6b; text-decoration:none}
+    a:hover{text-decoration:underline}
+  </style>
 </head>
 <body>
-    <h1>Benvenuto nel sito di G4Brix</h1>
-    <p>Funziona!</p>
+<canvas id="c"></canvas>
+
+<div class="panel" id="panel">
+  <div class="title">
+    <h1>G4Brix • Particelle / Legami</h1>
+    <span class="badge" id="fps">fps: --</span>
+  </div>
+
+  <div class="row">
+    <label for="count">Particelle</label>
+    <input id="count" type="range" min="80" max="1200" step="10" value="420">
+    <div class="val" id="countV">420</div>
+  </div>
+
+  <div class="row">
+    <label for="speed">Velocità</label>
+    <input id="speed" type="range" min="0.2" max="2.4" step="0.05" value="1.0">
+    <div class="val" id="speedV">1.00</div>
+  </div>
+
+  <div class="row">
+    <label for="linkDist">Distanza legami</label>
+    <input id="linkDist" type="range" min="30" max="180" step="2" value="92">
+    <div class="val" id="linkDistV">92</div>
+  </div>
+
+  <div class="row">
+    <label for="maxLinks">Max legami / particella</label>
+    <input id="maxLinks" type="range" min="0" max="12" step="1" value="5">
+    <div class="val" id="maxLinksV">5</div>
+  </div>
+
+  <div class="row">
+    <label for="mergeRate">Fusione (prob.)</label>
+    <input id="mergeRate" type="range" min="0" max="0.30" step="0.01" value="0.06">
+    <div class="val" id="mergeRateV">0.06</div>
+  </div>
+
+  <div class="row">
+    <label for="maxComplex">Compl. max</label>
+    <input id="maxComplex" type="range" min="1" max="12" step="1" value="7">
+    <div class="val" id="maxComplexV">7</div>
+  </div>
+
+  <div class="row">
+    <label for="pColor">Colore base</label>
+    <input id="pColor" type="color" value="#1b74b5">
+    <div class="val" style="width:56px; text-align:right;">&nbsp;</div>
+  </div>
+
+  <div class="row">
+    <label for="bgBoost">Sfondo + glow</label>
+    <input id="bgBoost" type="range" min="0" max="1" step="0.05" value="0.35">
+    <div class="val" id="bgBoostV">0.35</div>
+  </div>
+
+  <div class="row">
+    <label for="fpsCap">Cap FPS</label>
+    <input id="fpsCap" type="range" min="20" max="60" step="5" value="45">
+    <div class="val" id="fpsCapV">45</div>
+  </div>
+
+  <div class="row">
+    <label><input id="lowPower" type="checkbox" checked> Low power</label>
+    <div class="val" style="width:56px; text-align:right;">&nbsp;</div>
+  </div>
+
+  <div class="btns">
+    <button id="reset">Reset</button>
+    <button id="pause">Pausa</button>
+  </div>
+
+  <div class="small">
+    Drag col mouse = “vento” (spinge le particelle).<br>
+    Tasti: <span class="kbd">Space</span> pausa • <span class="kbd">R</span> reset
+  </div>
+
+  <div class="footer">
+    <span id="stats">--</span>
+    <span><a href="https://g4brix.infy.uk" target="_blank" rel="noopener">g4brix.infy.uk</a></span>
+  </div>
+</div>
+
+<script>
+(() => {
+  // ===== Canvas setup =====
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d', { alpha: true });
+  let W=0,H=0, DPR=1;
+
+  function resize(){
+    DPR = Math.min(2, window.devicePixelRatio || 1);
+    W = Math.floor(innerWidth);
+    H = Math.floor(innerHeight);
+    canvas.width  = Math.floor(W * DPR);
+    canvas.height = Math.floor(H * DPR);
+    canvas.style.width = W+'px';
+    canvas.style.height = H+'px';
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+  }
+  window.addEventListener('resize', resize, {passive:true});
+  resize();
+
+  // ===== UI elements =====
+  const ui = {
+    count: q('#count'), speed: q('#speed'), linkDist: q('#linkDist'), maxLinks:q('#maxLinks'),
+    mergeRate:q('#mergeRate'), maxComplex:q('#maxComplex'),
+    pColor:q('#pColor'), bgBoost:q('#bgBoost'),
+    fpsCap:q('#fpsCap'), lowPower:q('#lowPower'),
+    reset:q('#reset'), pause:q('#pause'),
+    fps:q('#fps'), stats:q('#stats'),
+    countV:q('#countV'), speedV:q('#speedV'), linkDistV:q('#linkDistV'), maxLinksV:q('#maxLinksV'),
+    mergeRateV:q('#mergeRateV'), maxComplexV:q('#maxComplexV'), bgBoostV:q('#bgBoostV'), fpsCapV:q('#fpsCapV')
+  };
+  function q(s){return document.querySelector(s);}
+
+  function bindRange(el, out, fmt=(v)=>v){
+    const upd = ()=> out.textContent = fmt(el.value);
+    el.addEventListener('input', upd, {passive:true});
+    upd();
+  }
+  bindRange(ui.count, ui.countV, v=>String(v));
+  bindRange(ui.speed, ui.speedV, v=>(+v).toFixed(2));
+  bindRange(ui.linkDist, ui.linkDistV, v=>String(v));
+  bindRange(ui.maxLinks, ui.maxLinksV, v=>String(v));
+  bindRange(ui.mergeRate, ui.mergeRateV, v=>(+v).toFixed(2));
+  bindRange(ui.maxComplex, ui.maxComplexV, v=>String(v));
+  bindRange(ui.bgBoost, ui.bgBoostV, v=>(+v).toFixed(2));
+  bindRange(ui.fpsCap, ui.fpsCapV, v=>String(v));
+
+  // ===== Simulation params (live) =====
+  const P = {
+    count: +ui.count.value,
+    speed: +ui.speed.value,
+    linkDist: +ui.linkDist.value,
+    maxLinks: +ui.maxLinks.value,
+    mergeRate: +ui.mergeRate.value,
+    maxComplex: +ui.maxComplex.value,
+    baseColor: ui.pColor.value,
+    bgBoost: +ui.bgBoost.value,
+    fpsCap: +ui.fpsCap.value,
+    lowPower: ui.lowPower.checked,
+  };
+
+  // Update params live (cheap)
+  ui.count.addEventListener('input', ()=> { P.count = +ui.count.value; syncCount(); }, {passive:true});
+  ui.speed.addEventListener('input', ()=> P.speed = +ui.speed.value, {passive:true});
+  ui.linkDist.addEventListener('input', ()=> P.linkDist = +ui.linkDist.value, {passive:true});
+  ui.maxLinks.addEventListener('input', ()=> P.maxLinks = +ui.maxLinks.value, {passive:true});
+  ui.mergeRate.addEventListener('input', ()=> P.mergeRate = +ui.mergeRate.value, {passive:true});
+  ui.maxComplex.addEventListener('input', ()=> P.maxComplex = +ui.maxComplex.value, {passive:true});
+  ui.pColor.addEventListener('input', ()=> P.baseColor = ui.pColor.value, {passive:true});
+  ui.bgBoost.addEventListener('input', ()=> P.bgBoost = +ui.bgBoost.value, {passive:true});
+  ui.fpsCap.addEventListener('input', ()=> P.fpsCap = +ui.fpsCap.value, {passive:true});
+  ui.lowPower.addEventListener('change', ()=> P.lowPower = ui.lowPower.checked, {passive:true});
+
+  // ===== Fast PRNG =====
+  let seed = 123456789;
+  function rnd(){ // xorshift32
+    seed ^= seed<<13; seed ^= seed>>>17; seed ^= seed<<5;
+    return ((seed>>>0) / 4294967296);
+  }
+
+  // ===== Particles =====
+  class Particle{
+    constructor(x,y,vx,vy,complexity=1){
+      this.x=x; this.y=y; this.vx=vx; this.vy=vy;
+      this.c = complexity;             // complexity level
+      this.r = 1.2 + Math.sqrt(this.c) * 1.15;
+      this.linked = 0;
+      this.h = rnd();                  // hue seed
+      this.id = (Particle._id++);      // unique
+    }
+    recalc(){
+      this.r = 1.2 + Math.sqrt(this.c) * 1.15;
+    }
+  }
+  Particle._id = 1;
+
+  let particles = [];
+  function init(){
+    particles = [];
+    Particle._id = 1;
+    seed = (Date.now() ^ 0x9e3779b9) >>> 0;
+    const n = P.count;
+    for(let i=0;i<n;i++){
+      const x = rnd()*W, y=rnd()*H;
+      const ang = rnd()*Math.PI*2;
+      const sp  = (0.35 + rnd()*0.9);
+      const vx = Math.cos(ang)*sp, vy=Math.sin(ang)*sp;
+      particles.push(new Particle(x,y,vx,vy,1));
+    }
+  }
+  init();
+
+  function syncCount(){
+    const target = P.count|0;
+    const cur = particles.length;
+    if(cur < target){
+      const add = Math.min(200, target - cur); // avoid spikes
+      for(let i=0;i<add;i++){
+        const x = rnd()*W, y=rnd()*H;
+        const ang = rnd()*Math.PI*2;
+        const sp  = (0.35 + rnd()*0.9);
+        particles.push(new Particle(x,y,Math.cos(ang)*sp,Math.sin(ang)*sp,1));
+      }
+    } else if(cur > target){
+      particles.length = target;
+    }
+  }
+
+  // ===== Spatial grid (fast neighbor search) =====
+  let cellSize = 80;
+  let cols=0, rows=0;
+  let grid = [];
+  function rebuildGrid(){
+    cellSize = Math.max(40, Math.min(120, P.linkDist|0));
+    cols = Math.max(1, Math.ceil(W / cellSize));
+    rows = Math.max(1, Math.ceil(H / cellSize));
+    grid = new Array(cols*rows);
+    for(let i=0;i<grid.length;i++) grid[i] = [];
+  }
+  rebuildGrid();
+  window.addEventListener('resize', rebuildGrid, {passive:true});
+  ui.linkDist.addEventListener('input', rebuildGrid, {passive:true});
+
+  function gridIndex(x,y){
+    const cx = Math.max(0, Math.min(cols-1, (x / cellSize) | 0));
+    const cy = Math.max(0, Math.min(rows-1, (y / cellSize) | 0));
+    return cy*cols + cx;
+  }
+
+  function clearGrid(){
+    for(let i=0;i<grid.length;i++) grid[i].length = 0;
+  }
+
+  // ===== Interaction: mouse "wind" =====
+  let mouseDown=false, mx=0,my=0, pmx=0,pmy=0, windX=0, windY=0;
+  addEventListener('pointerdown', (e)=>{ mouseDown=true; mx=e.clientX; my=e.clientY; pmx=mx; pmy=my; }, {passive:true});
+  addEventListener('pointerup', ()=>{ mouseDown=false; windX=windY=0; }, {passive:true});
+  addEventListener('pointermove', (e)=>{
+    pmx=mx; pmy=my; mx=e.clientX; my=e.clientY;
+    if(mouseDown){
+      windX = (mx-pmx) * 0.08;
+      windY = (my-pmy) * 0.08;
+    }
+  }, {passive:true});
+
+  // ===== Rendering helpers =====
+  function hexToRgb(hex){
+    const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    if(!m) return {r:27,g:116,b:181};
+    return {r:parseInt(m[1],16), g:parseInt(m[2],16), b:parseInt(m[3],16)};
+  }
+  function mix(a,b,t){ return a + (b-a)*t; }
+
+  // ===== Loop timing (FPS cap) =====
+  let paused=false;
+  ui.pause.addEventListener('click', ()=> togglePause(), {passive:true});
+  ui.reset.addEventListener('click', ()=> { init(); }, {passive:true});
+  addEventListener('keydown', (e)=>{
+    if(e.code==="Space"){ e.preventDefault(); togglePause(); }
+    if(e.key==="r" || e.key==="R"){ init(); }
+  });
+
+  function togglePause(){
+    paused=!paused;
+    ui.pause.textContent = paused ? "Riprendi" : "Pausa";
+  }
+
+  // ===== Main loop =====
+  let last = performance.now();
+  let acc = 0;
+  let frames=0, fps=0, fpsLast=performance.now();
+
+  function tick(now){
+    requestAnimationFrame(tick);
+
+    const cap = Math.max(10, P.fpsCap|0);
+    const step = 1000 / cap;
+    const dt = now - last;
+    last = now;
+
+    if(paused) { draw(0); return; }
+
+    acc += dt;
+    if(acc < step) return;
+    const simDt = Math.min(33, acc); // clamp big delays
+    acc = 0;
+
+    update(simDt/16.6667);
+    draw(simDt/16.6667);
+
+    frames++;
+    if(now - fpsLast > 700){
+      fps = Math.round(frames * 1000 / (now - fpsLast));
+      frames=0; fpsLast=now;
+      ui.fps.textContent = `fps: ${fps}`;
+    }
+  }
+  requestAnimationFrame(tick);
+
+  function update(tMul){
+    syncCount();
+
+    const spMul = P.speed;
+    const lp = P.lowPower;
+
+    // simple damping for stability
+    const damp = lp ? 0.998 : 0.9992;
+
+    // move & bounce + apply "wind"
+    for(const p of particles){
+      if(mouseDown){
+        p.vx += windX * 0.02 / Math.max(1, p.c);
+        p.vy += windY * 0.02 / Math.max(1, p.c);
+      }
+
+      p.vx *= damp; p.vy *= damp;
+      p.x += p.vx * spMul * tMul;
+      p.y += p.vy * spMul * tMul;
+
+      const r = p.r;
+      if(p.x < r){ p.x = r; p.vx = Math.abs(p.vx); }
+      else if(p.x > W - r){ p.x = W - r; p.vx = -Math.abs(p.vx); }
+      if(p.y < r){ p.y = r; p.vy = Math.abs(p.vy); }
+      else if(p.y > H - r){ p.y = H - r; p.vy = -Math.abs(p.vy); }
+      p.linked = 0;
+    }
+
+    // build grid
+    clearGrid();
+    for(let i=0;i<particles.length;i++){
+      const p = particles[i];
+      grid[gridIndex(p.x,p.y)].push(i);
+    }
+
+    // merges (handled with flags to avoid heavy splices mid-loop)
+    const toRemove = new Set();
+    const toAdd = [];
+
+    // Iterate each particle and check neighbors in 3x3 cells
+    const dist = P.linkDist;
+    const dist2 = dist*dist;
+    const mergeDist = Math.max(6, dist*0.18);
+    const mergeDist2 = mergeDist*mergeDist;
+
+    // soft budget: limit total link checks when low power
+    let checksBudget = lp ? Math.min(250000, particles.length * 350) : 1e9;
+    let merges=0;
+
+    for(let i=0;i<particles.length;i++){
+      if(checksBudget <= 0) break;
+      if(toRemove.has(i)) continue;
+      const a = particles[i];
+      const cx = (a.x / cellSize) | 0;
+      const cy = (a.y / cellSize) | 0;
+
+      for(let oy=-1; oy<=1; oy++){
+        const yy = cy + oy;
+        if(yy<0 || yy>=rows) continue;
+
+        for(let ox=-1; ox<=1; ox++){
+          const xx = cx + ox;
+          if(xx<0 || xx>=cols) continue;
+
+          const cell = grid[yy*cols + xx];
+          for(let k=0;k<cell.length;k++){
+            const j = cell[k];
+            if(j<=i) continue;
+            if(checksBudget-- <= 0) break;
+            if(toRemove.has(j)) continue;
+
+            const b = particles[j];
+
+            // quick skip if max links reached (still allow merge occasionally)
+            const canLink = (a.linked < P.maxLinks && b.linked < P.maxLinks && P.maxLinks>0);
+
+            const dx = b.x - a.x, dy = b.y - a.y;
+            const d2 = dx*dx + dy*dy;
+
+            // merge condition: very close + probability
+            if(d2 < mergeDist2 && merges < 120){
+              const maxC = P.maxComplex|0;
+              if(a.c < maxC || b.c < maxC){
+                // bias: easier merge for low complexity
+                const baseProb = P.mergeRate;
+                const cBias = 1 / (1 + 0.35*(a.c+b.c));
+                const prob = baseProb * cBias;
+                if(rnd() < prob){
+                  // create merged particle at midpoint
+                  const nx = (a.x + b.x) * 0.5;
+                  const ny = (a.y + b.y) * 0.5;
+                  const nvx = (a.vx + b.vx) * 0.5 + (rnd()-0.5)*0.2;
+                  const nvy = (a.vy + b.vy) * 0.5 + (rnd()-0.5)*0.2;
+                  const nc = Math.min(maxC, a.c + b.c);
+                  const np = new Particle(nx, ny, nvx, nvy, nc);
+                  // hue mixes a bit
+                  np.h = (a.h*0.5 + b.h*0.5 + (rnd()-0.5)*0.08 + 1) % 1;
+
+                  toRemove.add(i);
+                  toRemove.add(j);
+                  toAdd.push(np);
+                  merges++;
+                  break;
+                }
+              }
+            }
+
+            // link condition
+            if(canLink && d2 < dist2){
+              a.linked++; b.linked++;
+            }
+          }
+        }
+      }
+    }
+
+    // apply merges: rebuild array (cheap enough)
+    if(toRemove.size){
+      const next = [];
+      for(let i=0;i<particles.length;i++){
+        if(!toRemove.has(i)) next.push(particles[i]);
+      }
+      for(const p of toAdd) next.push(p);
+      particles = next;
+    }
+
+    // update HUD
+    ui.stats.textContent = `p: ${particles.length} • merge: ${merges}`;
+  }
+
+  function draw(tMul){
+    // clear with gentle translucent layer (nice trails, cheap)
+    const boost = P.bgBoost;
+    ctx.fillStyle = `rgba(255,255,255,${0.08 + 0.06*boost})`;
+    ctx.fillRect(0,0,W,H);
+
+    // rebuild grid for drawing links (need neighbors again)
+    clearGrid();
+    for(let i=0;i<particles.length;i++){
+      const p = particles[i];
+      grid[gridIndex(p.x,p.y)].push(i);
+    }
+
+    const base = hexToRgb(P.baseColor);
+    const dist = P.linkDist;
+    const dist2 = dist*dist;
+
+    // draw links with a total budget to stay light
+    const lp = P.lowPower;
+    let linkBudget = lp ? Math.min(18000, particles.length * 16) : 45000;
+    ctx.lineWidth = 1;
+
+    for(let i=0;i<particles.length;i++){
+      if(linkBudget<=0) break;
+      const a = particles[i];
+      const cx = (a.x / cellSize) | 0;
+      const cy = (a.y / cellSize) | 0;
+
+      for(let oy=-1; oy<=1; oy++){
+        const yy = cy + oy;
+        if(yy<0 || yy>=rows) continue;
+
+        for(let ox=-1; ox<=1; ox++){
+          const xx = cx + ox;
+          if(xx<0 || xx>=cols) continue;
+
+          const cell = grid[yy*cols + xx];
+          for(let k=0;k<cell.length;k++){
+            const j = cell[k];
+            if(j<=i) continue;
+
+            const b = particles[j];
+            const dx = b.x - a.x, dy = b.y - a.y;
+            const d2 = dx*dx + dy*dy;
+
+            if(d2 < dist2){
+              if(linkBudget--<=0) break;
+              const d = Math.sqrt(d2);
+              const t = 1 - (d / dist);
+              const alpha = (0.08 + 0.28*t) * (0.5 + 0.5*P.bgBoost);
+              const r = Math.round(mix(base.r, 255, 0.12 + 0.08*t));
+              const g = Math.round(mix(base.g, 255, 0.12 + 0.08*t));
+              const bcol = Math.round(mix(base.b, 255, 0.12 + 0.08*t));
+
+              ctx.strokeStyle = `rgba(${r},${g},${bcol},${alpha})`;
+              ctx.beginPath();
+              ctx.moveTo(a.x, a.y);
+              ctx.lineTo(b.x, b.y);
+              ctx.stroke();
+            }
+          }
+        }
+      }
+    }
+
+    // draw particles
+    // very cheap glow: just one circle with alpha
+    for(const p of particles){
+      const cT = (p.c-1) / Math.max(1, (P.maxComplex-1));
+      const alpha = 0.55 + 0.25*P.bgBoost;
+
+      // color shifts slightly with complexity
+      const rr = Math.round(mix(base.r, 255, 0.10 + 0.30*cT));
+      const gg = Math.round(mix(base.g, 255, 0.08 + 0.18*cT));
+      const bb = Math.round(mix(base.b, 255, 0.10 + 0.28*cT));
+
+      ctx.fillStyle = `rgba(${rr},${gg},${bb},${alpha})`;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+      ctx.fill();
+    }
+  }
+})();
+</script>
 </body>
 </html>
