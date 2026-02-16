@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Contatti - GABRIX</title>
+
+<style>
+:root{
+  --bg1:#9fd1ff; --bg2:#d7efff;
+  --text:#062235; --muted:#1f5572;
+  --brand:#0b5fd8;
+  --glass:rgba(255,255,255,.72);
+  --border:rgba(0,40,80,.14);
+  --shadow:0 10px 30px rgba(0,0,0,.12);
+  --radius:16px;
+  --ui:system-ui,Segoe UI,Arial;
+}
+
+html,body{height:100%;margin:0;font-family:var(--ui);overflow:hidden;}
+body{
+  background:
+  radial-gradient(1200px 600px at 25% 10%, var(--bg2), transparent 60%),
+  linear-gradient(160deg, var(--bg1), var(--bg2));
+}
+
+.centerCard{
+  position:fixed;
+  left:50%;
+  top:22%;
+  transform:translate(-50%,-50%);
+  text-align:center;
+  padding:20px;
+  background:var(--glass);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+  width:min(420px,90%);
+}
+
+h1{
+  margin-top:0;
+  color:var(--brand);
+}
+
+form{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+input, textarea{
+  padding:8px;
+  border-radius:8px;
+  border:1px solid var(--border);
+  font-size:14px;
+}
+
+button{
+  padding:10px;
+  border:none;
+  border-radius:10px;
+  background:var(--brand);
+  color:white;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+button:hover{opacity:.9}
+
+/* bottom bar */
+.nav{
+  position:fixed;
+  left:50%;
+  transform:translateX(-50%);
+  bottom:16px;
+  width:min(820px, calc(100% - 32px));
+  display:flex;
+  gap:10px;
+  justify-content:space-between;
+  padding:10px 12px;
+  background: rgba(255,255,255,.72);
+  border:1px solid var(--border);
+  border-radius:999px;
+  box-shadow:var(--shadow);
+}
+
+.nav a{
+  flex:1;
+  text-align:center;
+  text-decoration:none;
+  color:#0b3e57;
+  font-weight:600;
+  font-size:13px;
+  padding:8px;
+  border-radius:999px;
+}
+
+.nav a.primary{
+  color:white;
+  background:rgba(11,95,216,.88);
+}
+</style>
+</head>
+
+<body>
+
+<div class="centerCard">
+  <h1>Contatti</h1>
+
+  <form onsubmit="sendMail(); return false;">
+    <input id="name" type="text" placeholder="Il tuo nome" required>
+    <input id="email" type="email" placeholder="La tua email" required>
+    <textarea id="msg" rows="4" placeholder="Messaggio" required></textarea>
+    <button type="submit">Invia</button>
+  </form>
+</div>
+
+<nav class="nav">
+  <a href="index.html">Home</a>
+  <a href="projects.html">Progetti</a>
+  <a href="experiments.html">Esperimenti</a>
+  <a href="blog.html">Appunti</a>
+  <a class="primary" href="contacts.html">Contatti</a>
+</nav>
+
+<script>
+function sendMail(){
+  let name = document.getElementById("name").value;
+  let email = document.getElementById("email").value;
+  let msg = document.getElementById("msg").value;
+
+  let subject = encodeURIComponent("Contatto dal sito");
+  let body = encodeURIComponent(
+    "Nome: " + name + "\n" +
+    "Email: " + email + "\n\n" +
+    msg
+  );
+
+  window.location.href =
+    "mailto:pica69@katamail.com?subject=" + subject + "&body=" + body;
+}
+</script>
+
+</body>
+</html>
